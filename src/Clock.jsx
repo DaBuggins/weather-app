@@ -22,7 +22,7 @@ export default function Clock() {
 
   return (
     <div className="advice">
-      <AccessTimeIcon /> {currentTime}{" "}
+      <AccessTimeIcon /> {currentTime}
     </div>
   );
 }

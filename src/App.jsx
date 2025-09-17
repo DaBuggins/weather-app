@@ -1,61 +1,76 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import "./App.css";
 import dayjs from "dayjs";
 import { weatherCodes } from "./WeatherCodes";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Clock from "./Clock";
 
+const getInitialCity = () => {
+  return localStorage.getItem("city") || "London";
+};
+
 function App() {
   const [weatherData, setWeatherData] = useState(null);
-  const [city, setCity] = useState("London");
+  const [city, setCity] = useState(getInitialCity);
   const [latitude, setLatitude] = useState(51.50853);
   const [longitude, setLongitude] = useState(-0.12574);
 
   useEffect(() => {
-    const fetchLocation = async () => {
-      try {
-        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&countryCode=GB`;
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log(data);
-        if (data.results && data.results.length > 0) {
-          setLatitude(data.results[0].latitude);
-          setLongitude(data.results[0].longitude);
-        }
-      } catch (error) {
-        console.error("Error fetching location data:", error);
-      }
-    };
-    const fetchWeatherData = async () => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relative_humidity_2m,weather_code&current_weather=true&forecast_days=5&daily=temperature_2m_max,weather_code`;
-        const response = await fetch(url);
-        const data = await response.json();
-        setWeatherData(data);
-      } catch (error) {
-        console.error("Error fetching weather data:", error);
-      }
-    };
-    fetchLocation().then(() => fetchWeatherData());
+    localStorage.setItem("city", city);
   }, [city]);
+
+  const fetchLocation = async (city) => {
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&countryCode=GB`;
+      const response = await fetch(url);
+      const data = await response.json();
+      console.log(`location data: `, data.results[0]);
+      if (data.results && data.results.length > 0) {
+        setLatitude(data.results[0].latitude);
+        setLongitude(data.results[0].longitude);
+      }
+    } catch (error) {
+      alert("Location not found. Please try another city/town.");
+      console.error("Error fetching location data:", error);
+      const userCity = prompt("Enter a city/town:");
+      if (userCity) {
+        setCity(userCity);
+      }
+    }
+  };
+
+  const fetchWeatherData = async () => {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relative_humidity_2m,weather_code&current_weather=true&forecast_days=5&daily=temperature_2m_max,weather_code`;
+      const response = await fetch(url);
+      const data = await response.json();
+      console.log(`weather data: `, data);
+      setWeatherData(data);
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLocation(city).then(() => fetchWeatherData());
+  }, [city, latitude, longitude]);
 
   if (!weatherData) {
     return <div>Loading...</div>;
   }
 
-  console.log(weatherData);
-
   return (
     <div className="wrapper">
-      <div className="header">
-        <div
-          onClick={() => {
-            const userCity = prompt("Enter a city/town:");
-            if (userCity) {
-              setCity(userCity);
-            }
-          }}
-        >
+      <div
+        className="header"
+        onClick={() => {
+          const userCity = prompt("Enter a city/town:");
+          if (userCity) {
+            setCity(userCity);
+          }
+        }}
+      >
+        <div>
           <h1 className="city">
             {city} <SettingsIcon className="settings-icon" fontSize="small" />
           </h1>
